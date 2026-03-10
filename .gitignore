@@ -1,0 +1,96 @@
+# Игнорировать node_modules в любой директории
+**/node_modules
+**/node_modules/
+
+# игнорировать все папки node_modules на любом уровне
+node_modules/
+
+# Зависимости и пакеты
+**/package-lock.json
+**/yarn.lock
+**/pnpm-lock.yaml
+**/bun.lockb
+
+# Логи и временные файлы
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/pnpm-debug.log*
+**/lerna-debug.log*
+
+# Директории с результатами сборки
+**/dist
+**/dist/
+**/build
+**/build/
+**/out
+**/out/
+
+# Кэш
+**/.cache
+**/.cache/
+**/.temp
+**/.temp/
+**/tmp
+**/tmp/
+
+# IDE и редакторы
+**/.vscode/
+**/.idea/
+**/*.swp
+**/*.swo
+**/*.swn
+**/.vs/
+
+# OS generated files
+**/.DS_Store
+**/.DS_Store?
+**/._*
+**/.Spotlight-V100
+**/.Trashes
+**/ehthumbs.db
+**/Thumbs.db
+
+# Coverage reports
+**/coverage
+**/coverage/
+**/.nyc_output
+**/.nyc_output/
+
+# Environment files
+**/.env
+**/.env.local
+**/.env.*.local
+**/.venv
+**/venv/
+**/env/
+
+# Логи приложений
+**/*.log
+**/logs
+**/logs/
+
+# Временные файлы различных редакторов
+**/*~
+**/#*#
+**/.#*
+**/%*%
+**/._*
+
+# Docker
+**/.dockerignore
+**/Dockerfile
+**/docker-compose*.yml
+**/.docker/
+
+# Terraform
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/.terraform.lock.hcl
+**/crash.log
+
+# Базы данных
+**/*.db
+**/*.sqlite
+**/*.sqlite3
