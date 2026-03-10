@@ -2,6 +2,10 @@ const express = require('express');
 const { nanoid } = require('nanoid');
 const cors = require('cors');
 
+// Подключаем Swagger
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
+
 const app = express();
 const port = 3000;
 
@@ -12,6 +16,89 @@ app.use(cors({
     methods: ["GET", "POST", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
 }));
+
+// ========== НАСТРОЙКА SWAGGER ==========
+const swaggerOptions = {
+    definition: {
+        openapi: '3.0.0',
+        info: {
+            title: 'API интернет-магазина',
+            version: '1.0.0',
+            description: 'API для управления товарами в интернет-магазине',
+            contact: {
+                name: 'Разработчик',
+                email: 'developer@example.com'
+            }
+        },
+        servers: [
+            {
+                url: `http://localhost:${port}`,
+                description: 'Локальный сервер'
+            }
+        ],
+        components: {
+            schemas: {
+                Product: {
+                    type: 'object',
+                    required: ['name', 'category', 'description', 'price', 'stock'],
+                    properties: {
+                        id: {
+                            type: 'string',
+                            description: 'Уникальный идентификатор товара',
+                            example: 'abc123'
+                        },
+                        name: {
+                            type: 'string',
+                            description: 'Название товара',
+                            example: 'Смартфон XYZ Pro'
+                        },
+                        category: {
+                            type: 'string',
+                            description: 'Категория товара',
+                            example: 'Смартфоны'
+                        },
+                        description: {
+                            type: 'string',
+                            description: 'Подробное описание товара',
+                            example: '6.7" AMOLED, 128 ГБ, тройная камера 108 Мп'
+                        },
+                        price: {
+                            type: 'number',
+                            description: 'Цена товара в рублях',
+                            example: 49990
+                        },
+                        stock: {
+                            type: 'integer',
+                            description: 'Количество на складе',
+                            example: 15
+                        }
+                    }
+                },
+                Error: {
+                    type: 'object',
+                    properties: {
+                        error: {
+                            type: 'string',
+                            description: 'Сообщение об ошибке'
+                        }
+                    }
+                }
+            }
+        },
+        tags: [
+            {
+                name: 'Products',
+                description: 'Управление товарами'
+            }
+        ]
+    },
+    apis: ['./app.js'], // Путь к файлу с аннотациями
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+
+// Подключаем Swagger UI по адресу /api-docs
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Начальные данные (10 товаров)
 let products = [
@@ -48,25 +135,113 @@ function findProductOr404(id, res) {
     return product;
 }
 
-// ========== МАРШРУТЫ ==========
+// ========== МАРШРУТЫ С ДОКУМЕНТАЦИЕЙ ==========
 
-// GET все товары
+/**
+ * @swagger
+ * /api/products:
+ *   get:
+ *     summary: Получить список всех товаров
+ *     tags: [Products]
+ *     responses:
+ *       200:
+ *         description: Список товаров
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Product'
+ */
 app.get("/api/products", (req, res) => {
     res.json(products);
 });
 
-// GET товар по ID
+/**
+ * @swagger
+ * /api/products/{id}:
+ *   get:
+ *     summary: Получить товар по ID
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID товара
+ *         example: abc123
+ *     responses:
+ *       200:
+ *         description: Данные товара
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Product'
+ *       404:
+ *         description: Товар не найден
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 app.get("/api/products/:id", (req, res) => {
     const product = findProductOr404(req.params.id, res);
     if (!product) return;
     res.json(product);
 });
 
-// POST новый товар
+/**
+ * @swagger
+ * /api/products:
+ *   post:
+ *     summary: Создать новый товар
+ *     tags: [Products]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - category
+ *               - description
+ *               - price
+ *               - stock
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "Новый смартфон"
+ *               category:
+ *                 type: string
+ *                 example: "Смартфоны"
+ *               description:
+ *                 type: string
+ *                 example: "Описание нового товара"
+ *               price:
+ *                 type: number
+ *                 example: 29990
+ *               stock:
+ *                 type: integer
+ *                 example: 10
+ *     responses:
+ *       201:
+ *         description: Товар успешно создан
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Product'
+ *       400:
+ *         description: Ошибка валидации
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 app.post("/api/products", (req, res) => {
     const { name, category, description, price, stock } = req.body;
     
-    // Валидация
     if (!name || !category || !description || !price || !stock) {
         return res.status(400).json({ error: "Все поля обязательны" });
     }
@@ -84,7 +259,53 @@ app.post("/api/products", (req, res) => {
     res.status(201).json(newProduct);
 });
 
-// PATCH обновление товара
+/**
+ * @swagger
+ * /api/products/{id}:
+ *   patch:
+ *     summary: Обновить данные товара
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID товара
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "Обновленное название"
+ *               category:
+ *                 type: string
+ *                 example: "Новая категория"
+ *               description:
+ *                 type: string
+ *                 example: "Обновленное описание"
+ *               price:
+ *                 type: number
+ *                 example: 39990
+ *               stock:
+ *                 type: integer
+ *                 example: 5
+ *     responses:
+ *       200:
+ *         description: Товар обновлен
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Product'
+ *       400:
+ *         description: Ошибка валидации
+ *       404:
+ *         description: Товар не найден
+ */
 app.patch("/api/products/:id", (req, res) => {
     const product = findProductOr404(req.params.id, res);
     if (!product) return;
@@ -100,7 +321,25 @@ app.patch("/api/products/:id", (req, res) => {
     res.json(product);
 });
 
-// DELETE товар
+/**
+ * @swagger
+ * /api/products/{id}:
+ *   delete:
+ *     summary: Удалить товар
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID товара
+ *     responses:
+ *       204:
+ *         description: Товар успешно удален (нет тела ответа)
+ *       404:
+ *         description: Товар не найден
+ */
 app.delete("/api/products/:id", (req, res) => {
     const exists = products.some(p => p.id === req.params.id);
     if (!exists) return res.status(404).json({ error: "Товар не найден" });
@@ -123,6 +362,7 @@ app.use((err, req, res, next) => {
 // Запуск сервера
 app.listen(port, () => {
     console.log(`Сервер запущен на http://localhost:${port}`);
+    console.log(`Swagger документация доступна по адресу http://localhost:${port}/api-docs`);
     console.log('Доступные маршруты:');
     console.log('GET    /api/products');
     console.log('GET    /api/products/:id');
